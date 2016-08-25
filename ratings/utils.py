@@ -1,6 +1,5 @@
 from math import sqrt
 
-import django
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -21,22 +20,16 @@ def is_gfk(content_field):
 
 def query_has_where(query):
     compiler = query.get_compiler(using='default')
-    if django.VERSION < (1, 2):
-        return query.where.as_sql()[0] is None
+    if getattr(compiler, 'compile', None):
+        where, params = compiler.compile(query.where)
+        return where is None
     else:
-        if getattr(compiler, 'compile', None):
-            where, params = compiler.compile(query.where)
-            return where is None
-        else:
-            qn = connection.ops.quote_name
-            return query.where.as_sql(qn, connection)[0] is None
+        qn = connection.ops.quote_name
+        return query.where.as_sql(qn, connection)[0] is None
 
 
 def query_as_sql(query):
-    if django.VERSION < (1, 2):
-        return query.as_sql()
-    else:
-        return query.get_compiler(connection=connection).as_sql()
+    return query.get_compiler(connection=connection).as_sql()
 
 
 def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
